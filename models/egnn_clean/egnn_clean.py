@@ -190,7 +190,7 @@ def get_edges_batch(n_nodes, batch_size):
         edges = [torch.cat(rows), torch.cat(cols)]
     return edges, edge_attr
 
-
+# comment
 if __name__ == "__main__":
     # Dummy parameters
     batch_size = 8
