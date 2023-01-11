@@ -125,24 +125,39 @@ class EGNN(nn.Module):
                         phi_x(m_ij) which definitely improves in stability but it may decrease in accuracy.
                         We didn't use it in our paper.
         '''
-
+        
+        # 
         super(EGNN, self).__init__()
+        # 定义 隐藏 node 的维度
         self.hidden_nf = hidden_nf
+        # 定义 device
         self.device = device
+        # EGNN的层数
         self.n_layers = n_layers
+        # 先是一个embedding 把输入的node的维度通过MLP映射到隐藏层维度 
         self.embedding_in = nn.Linear(in_node_nf, self.hidden_nf)
+        # 最后一层的结果也要做embedding 把输出的node的维度还原到out node 的维度
         self.embedding_out = nn.Linear(self.hidden_nf, out_node_nf)
+        
+        # 每一层的循环 按照层数把EGCL层添加到EGNN大模块下面 这样前面也对input output embedding过了 直接都一样的dim就行了 不用特殊照顾 第一层和最后一层
         for i in range(0, n_layers):
             self.add_module("gcl_%d" % i, E_GCL(self.hidden_nf, self.hidden_nf, self.hidden_nf, edges_in_d=in_edge_nf,
                                                 act_fn=act_fn, residual=residual, attention=attention,
                                                 normalize=normalize, tanh=tanh))
+        # 送到device上
         self.to(self.device)
 
+    # 定义前馈
     def forward(self, h, x, edges, edge_attr):
+        # 先对input做 embedding
         h = self.embedding_in(h)
+        # 逐层过构建的EGNN
         for i in range(0, self.n_layers):
             h, x, _ = self._modules["gcl_%d" % i](h, edges, x, edge_attr=edge_attr)
+        # 最后一层output过 embedding
         h = self.embedding_out(h)
+        
+        # 返回 h 和 x
         return h, x
 
 
